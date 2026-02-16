@@ -1,0 +1,39 @@
+version: '3'
+services:
+  db:
+    image: mariadb:10
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootdarry
+      MYSQL_DATABASE: darry01
+      MYSQL_USER: administrator
+      MYSQL_PASSWORD: adminpass
+
+  dbadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: administrator
+      PMA_PASSWORD: adminpass
+    depends_on:
+      - db
+
+  wordpress:
+    image: wordpress:latest
+    depends_on:
+      - db
+    ports:
+      - "8081:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: darry01
+      WORDPRESS_DB_USER: administrator
+      WORDPRESS_DB_PASSWORD: adminpass
+
+volumes:
+  mariadb-data:
