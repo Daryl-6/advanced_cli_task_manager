@@ -1,0 +1,40 @@
+stages:
+  - build
+  - test
+  - push
+
+variables:
+  IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+build_image:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_NAME .
+    - docker save $IMAGE_NAME > image.tar
+  artifacts:
+    paths: [image.tar]
+
+security_scan:
+  stage: test
+  image: 
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    # Correction 25% : Scan bloquant sur les vulnérabilités CRITICAL
+    - trivy image --input image.tar --severity CRITICAL --exit-code 1
+
+push_registry:
+  stage: push
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker load < image.tar
+    - docker push $IMAGE_NAME
+    - docker tag $IMAGE_NAME $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:latest
